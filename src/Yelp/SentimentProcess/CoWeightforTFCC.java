@@ -1,0 +1,424 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package Yelp.SentimentProcess;
+
+import master.DbconnYelp;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.ArrayList;
+
+/**
+ *
+ * @author Sunsoft
+ */
+public class CoWeightforTFCC {
+
+    public static ArrayList AspectListAmbiance = new ArrayList();
+    public static ArrayList AspectListFood = new ArrayList();
+    public static ArrayList AspectListWorthiness = new ArrayList();
+    public static ArrayList AspectListRestaurant = new ArrayList();
+    public static ArrayList AspectListService = new ArrayList();
+    public static ArrayList AspectListPrice = new ArrayList();
+
+    public static ArrayList GetList(String aspectTerm) {
+        ArrayList List = new ArrayList();
+        try {
+            DbconnYelp db = new DbconnYelp();
+            Connection con = (Connection) db.conn();
+            Statement st = (Statement) con.createStatement();
+
+            ResultSet rs = (ResultSet) st.executeQuery("select * from cooccurance where aspect='" + aspectTerm + "'");
+            while (rs.next()) {
+                String id = rs.getString("id");
+                String aspect = rs.getString("aspect");
+                String term = rs.getString("term");
+                String ambiance = rs.getString("ambiance");
+                String food = rs.getString("food");
+                String Restaurant = rs.getString("Restaurant");
+                String Worthiness = rs.getString("Worthiness");
+                String service = rs.getString("service");
+                String Price = rs.getString("price");
+                List.add(id + "," + aspect + "," + term + "," + ambiance + "," + food + "," + Worthiness + "," + Restaurant + "," + service + "," + Price);
+            }
+        } catch (Exception ex) {
+        }
+        return List;
+    }
+
+    public static void CalculateCOrelation() {
+        AmbianceWight();
+        Foodweight();
+        Serviceweight();
+        Restaurantweight();
+        worthweight();
+        Priceweight();
+    }
+
+    public static void Priceweight() {
+
+        try {
+            DbconnYelp db = new DbconnYelp();
+            Connection con = (Connection) db.conn();
+            Statement st = (Statement) con.createStatement();
+            Statement st1 = (Statement) con.createStatement();
+
+            AspectListPrice = GetList("price");
+            ResultSet rs = (ResultSet) st.executeQuery("select * from cooccurance where aspect='price'");
+
+            while (rs.next()) {
+                double sum = 0.0;
+                String id = rs.getString("id");
+                String aspect = rs.getString("aspect");
+                String term = rs.getString("term");
+                
+                double ambiance = Double.valueOf(rs.getString("ambiance"));
+                double food = Double.valueOf(rs.getString("food"));
+                double Worthiness = Double.valueOf(rs.getString("Worthiness"));
+                double restaurant = Double.valueOf(rs.getString("Restaurant"));
+                double service = Double.valueOf(rs.getString("service"));
+                double price = Double.valueOf(rs.getString("price"));
+                
+                for (int start = 0; start < AspectListPrice.size(); start++) {
+                    String[] dataparts = AspectListPrice.get(start).toString().split(",");
+                   // String Fs = dataparts[2].toString();
+                   
+                    double am = Double.valueOf(dataparts[3]);
+                    double fd = Double.valueOf(dataparts[4]);
+                    double res = Double.valueOf(dataparts[5]);
+                    double wor = Double.valueOf(dataparts[6]);
+                    double ser = Double.valueOf(dataparts[7]); 
+                    double pri = Double.valueOf(dataparts[8]);
+                    
+
+                    double coeeff = 0.0;
+                    double X[] = {ambiance, food, Worthiness, restaurant, service,price};
+                    double Y[] = {am, fd, res, wor, ser,pri};
+                    int n = X.length;
+                    coeeff = correlationCoefficient(X, Y, n);
+                    sum = (sum + coeeff);
+                }
+                double avg = (sum / Double.valueOf(AspectListPrice.size()));
+                if (Double.isNaN(avg) || Double.isInfinite(avg)) {
+                    avg = (float) 0.0;
+                }
+                System.out.println("Term \t" + term + "Average \t" + avg);
+                st1.executeUpdate("update cooccurance set weight='" + String.valueOf(avg) + "' where id =" + id + "");
+                AspectListFood.remove(term);
+            }
+        } catch (Exception ex) {
+            System.out.println("2" + ex);
+        }
+    }
+
+    public static void AmbianceWight() {
+
+        try {
+            DbconnYelp db = new DbconnYelp();
+            Connection con = (Connection) db.conn();
+            Statement st = (Statement) con.createStatement();
+
+            AspectListAmbiance = GetList("ambiance");
+            ResultSet rs = (ResultSet) st.executeQuery("select * from cooccurance where aspect='ambiance'");
+
+            while (rs.next()) {
+                double sum = 0.0;
+                String id = rs.getString("id");
+                String aspect = rs.getString("aspect");
+                String term = rs.getString("term");
+               
+    double ambiance = Double.valueOf(rs.getString("ambiance"));
+                double food = Double.valueOf(rs.getString("food"));
+                double Worthiness = Double.valueOf(rs.getString("Worthiness"));
+                double restaurant = Double.valueOf(rs.getString("Restaurant"));
+                double service = Double.valueOf(rs.getString("service"));
+                double price = Double.valueOf(rs.getString("price"));
+                
+                for (int start = 0; start < AspectListAmbiance.size(); start++) {
+                    String[] dataparts = AspectListAmbiance.get(start).toString().split(",");
+                    String Fs = dataparts[2].toString();
+                  
+                    double am = Double.valueOf(dataparts[3]);
+                    double fd = Double.valueOf(dataparts[4]);
+                    double res = Double.valueOf(dataparts[5]);
+                    double wor = Double.valueOf(dataparts[6]);
+                    double ser = Double.valueOf(dataparts[7]); 
+                    double pri = Double.valueOf(dataparts[8]);
+                    
+                                    double coeeff = 0.0;
+                    double X[] = {ambiance, food, Worthiness, restaurant, service,price};
+                    double Y[] = {am, fd, res, wor, ser, pri};
+                    int n = X.length;
+                    coeeff = correlationCoefficient(X, Y, n);
+                    sum = (sum + coeeff);
+                }
+                double avg = (sum / Double.valueOf(AspectListAmbiance.size()));
+                if (Double.isNaN(avg) || Double.isInfinite(avg)) {
+                    avg = (float) 0.0;
+                }
+                System.out.println("Term \t" + term + "Average \t" + avg);
+                Statement st1 = con.createStatement();
+                st1.executeUpdate("update cooccurance set weight='" + String.valueOf(avg) + "' where id =" + id + "");
+                AspectListAmbiance.remove(term);
+            }
+        } catch (Exception ex) {
+            System.out.println("1" + ex);
+        }
+    }
+
+    public static void Foodweight() {
+
+        try {
+            DbconnYelp db = new DbconnYelp();
+            Connection con = (Connection) db.conn();
+            Statement st = (Statement) con.createStatement();
+            Statement st1 = (Statement) con.createStatement();
+
+            AspectListFood = GetList("food");
+            ResultSet rs = (ResultSet) st.executeQuery("select * from cooccurance where aspect='food'");
+
+            while (rs.next()) {
+                double sum = 0.0;
+                String id = rs.getString("id");
+                String aspect = rs.getString("aspect");
+                String term = rs.getString("term");
+                
+            double ambiance = Double.valueOf(rs.getString("ambiance"));
+                double food = Double.valueOf(rs.getString("food"));
+                double Worthiness = Double.valueOf(rs.getString("Worthiness"));
+                double restaurant = Double.valueOf(rs.getString("Restaurant"));
+                double service = Double.valueOf(rs.getString("service"));
+                double price = Double.valueOf(rs.getString("price"));
+                
+                for (int start = 0; start < AspectListFood.size(); start++) {
+                    String[] dataparts = AspectListFood.get(start).toString().split(",");
+                    String Fs = dataparts[2].toString();
+                
+                    double am = Double.valueOf(dataparts[3]);
+                    double fd = Double.valueOf(dataparts[4]);
+                    double res = Double.valueOf(dataparts[5]);
+                    double wor = Double.valueOf(dataparts[6]);
+                    double ser = Double.valueOf(dataparts[7]); 
+                    double pri = Double.valueOf(dataparts[8]);
+
+
+                    double coeeff = 0.0;
+                    double X[] = {ambiance, food, Worthiness, restaurant, service,price};
+                    double Y[] = {am, fd, res, wor, ser,pri};
+                    int n = X.length;
+                    coeeff = correlationCoefficient(X, Y, n);
+                    sum = (sum + coeeff);
+                }
+                double avg = (sum / Double.valueOf(AspectListFood.size()));
+                if (Double.isNaN(avg) || Double.isInfinite(avg)) {
+                    avg = (float) 0.0;
+                }
+                System.out.println("Term \t" + term + "Average \t" + avg);
+                st1.executeUpdate("update cooccurance set weight='" + String.valueOf(avg) + "' where id =" + id + "");
+                AspectListFood.remove(term);
+            }
+        } catch (Exception ex) {
+            System.out.println("2" + ex);
+        }
+    }
+
+    public static void Serviceweight() {
+
+        try {
+            DbconnYelp db = new DbconnYelp();
+            Connection con = (Connection) db.conn();
+            Statement st = (Statement) con.createStatement();
+            Statement st1 = (Statement) con.createStatement();
+
+            AspectListService = GetList("service");
+            ResultSet rs = (ResultSet) st.executeQuery("select * from cooccurance where aspect='service'");
+
+            while (rs.next()) {
+                double sum = 0.0;
+                String id = rs.getString("id");
+                String aspect = rs.getString("aspect");
+                String term = rs.getString("term");
+                
+                double ambiance = Double.valueOf(rs.getString("ambiance"));
+                double food = Double.valueOf(rs.getString("food"));
+                double Worthiness = Double.valueOf(rs.getString("Worthiness"));
+                double restaurant = Double.valueOf(rs.getString("Restaurant"));
+                double service = Double.valueOf(rs.getString("service"));
+                double price = Double.valueOf(rs.getString("price"));
+                
+                for (int start = 0; start < AspectListService.size(); start++) {
+                    String[] dataparts = AspectListService.get(start).toString().split(",");
+                    String Fs = dataparts[2].toString();
+                   
+                   double am = Double.valueOf(dataparts[3]);
+                    double fd = Double.valueOf(dataparts[4]);
+                    double res = Double.valueOf(dataparts[5]);
+                    double wor = Double.valueOf(dataparts[6]);
+                    double ser = Double.valueOf(dataparts[7]); 
+                    double pri = Double.valueOf(dataparts[8]);
+
+
+                    double coeeff = 0.0;
+                    double X[] = {ambiance, food, Worthiness, restaurant, service,price};
+                    double Y[] = {am, fd, res, wor, ser,pri};
+                   
+                    int n = X.length;
+                    coeeff = correlationCoefficient(X, Y, n);
+                    sum = (sum + coeeff);
+                }
+                double avg = (sum / Double.valueOf(AspectListService.size()));
+                if (Double.isNaN(avg) || Double.isInfinite(avg)) {
+                    avg = (float) 0.0;
+                }
+                System.out.println("Term \t" + term + "Average \t" + avg);
+                st1.executeUpdate("update cooccurance set weight='" + String.valueOf(avg) + "' where id =" + id + "");
+                AspectListService.remove(term);
+            }
+        } catch (Exception ex) {
+            System.out.println("3" + ex);
+        }
+    }
+
+    public static void Restaurantweight() {
+
+        try {
+            DbconnYelp db = new DbconnYelp();
+            Connection con = (Connection) db.conn();
+            Statement st = (Statement) con.createStatement();
+            Statement st1 = (Statement) con.createStatement();
+
+            AspectListRestaurant = GetList("Restaurant");
+            ResultSet rs = (ResultSet) st.executeQuery("select * from cooccurance where aspect='Restaurant'");
+
+            while (rs.next()) {
+                double sum = 0.0;
+                String id = rs.getString("id");
+                String aspect = rs.getString("aspect");
+                String term = rs.getString("term");
+               
+              double ambiance = Double.valueOf(rs.getString("ambiance"));
+                double food = Double.valueOf(rs.getString("food"));
+                double Worthiness = Double.valueOf(rs.getString("Worthiness"));
+                double restaurant = Double.valueOf(rs.getString("Restaurant"));
+                double service = Double.valueOf(rs.getString("service"));
+                double price = Double.valueOf(rs.getString("price"));
+                
+                for (int start = 0; start < AspectListRestaurant.size(); start++) {
+                    String[] dataparts = AspectListRestaurant.get(start).toString().split(",");
+                    String Fs = dataparts[2].toString();
+                   
+                   double am = Double.valueOf(dataparts[3]);
+                    double fd = Double.valueOf(dataparts[4]);
+                    double res = Double.valueOf(dataparts[5]);
+                    double wor = Double.valueOf(dataparts[6]);
+                    double ser = Double.valueOf(dataparts[7]); 
+                    double pri = Double.valueOf(dataparts[8]);
+
+
+                    double coeeff = 0.0;
+                    double X[] = {ambiance, food, Worthiness, restaurant, service,price};
+                    double Y[] = {am, fd, res, wor, ser,pri};
+                    int n = X.length;
+                    coeeff = correlationCoefficient(X, Y, n);
+                    sum = (sum + coeeff);
+                }
+                double avg = (sum / Double.valueOf(AspectListRestaurant.size()));
+                if (Double.isNaN(avg) || Double.isInfinite(avg)) {
+                    avg = (float) 0.0;
+                }
+                System.out.println("Term \t" + term + "Average \t" + avg);
+                st1.executeUpdate("update cooccurance set weight='" + String.valueOf(avg) + "' where id =" + id + "");
+                AspectListRestaurant.remove(term);
+            }
+        } catch (Exception ex) {
+            System.out.println("4" + ex);
+        }
+    }
+
+    public static void worthweight() {
+        try {
+            DbconnYelp db = new DbconnYelp();
+            Connection con = (Connection) db.conn();
+            Statement st = (Statement) con.createStatement();
+            Statement st1 = (Statement) con.createStatement();
+
+            AspectListWorthiness = GetList("Worthiness");
+            ResultSet rs = (ResultSet) st.executeQuery("select * from cooccurance where aspect='Worthiness'");
+
+            while (rs.next()) {
+                double sum = 0.0;
+                String id = rs.getString("id");
+                String aspect = rs.getString("aspect");
+                String term = rs.getString("term");
+              
+double ambiance = Double.valueOf(rs.getString("ambiance"));
+                double food = Double.valueOf(rs.getString("food"));
+                double Worthiness = Double.valueOf(rs.getString("Worthiness"));
+                double restaurant = Double.valueOf(rs.getString("Restaurant"));
+                double service = Double.valueOf(rs.getString("service"));
+                double price = Double.valueOf(rs.getString("price"));
+                
+                for (int start = 0; start < AspectListWorthiness.size(); start++) {
+                    String[] dataparts = AspectListWorthiness.get(start).toString().split(",");
+                    String Fs = dataparts[2].toString();
+                   
+                   double am = Double.valueOf(dataparts[3]);
+                    double fd = Double.valueOf(dataparts[4]);
+                    double res = Double.valueOf(dataparts[5]);
+                    double wor = Double.valueOf(dataparts[6]);
+                    double ser = Double.valueOf(dataparts[7]); 
+                    double pri = Double.valueOf(dataparts[8]);
+
+
+                    double coeeff = 0.0;
+                    double X[] = {ambiance, food, Worthiness, restaurant, service,price};
+                    double Y[] = {am, fd, res, wor, ser,pri};
+                    int n = X.length;
+                    coeeff = correlationCoefficient(X, Y, n);
+                    sum = (sum + coeeff);
+                }
+                double avg = (sum / Double.valueOf(AspectListWorthiness.size()));
+                if (Double.isNaN(avg) || Double.isInfinite(avg)) {
+                    avg = (float) 0.0;
+                }
+                System.out.println("Term \t" + term + "Average \t" + avg);
+                st1.executeUpdate("update cooccurance set weight='" + String.valueOf(avg) + "' where id =" + id + "");
+                AspectListWorthiness.remove(term);
+            }
+        } catch (Exception ex) {
+            System.out.println("5" + ex);
+        }
+    }
+
+    static float correlationCoefficient(double X[], double Y[], int n) {
+
+        double sum_X = 0, sum_Y = 0, sum_XY = 0;
+        double squareSum_X = 0, squareSum_Y = 0;
+
+        for (int i = 0; i < n; i++) {
+            // sum of elements of array X. 
+            sum_X = sum_X + X[i];
+
+            // sum of elements of array Y. 
+            sum_Y = sum_Y + Y[i];
+
+            // sum of X[i] * Y[i]. 
+            sum_XY = sum_XY + X[i] * Y[i];
+
+            //  sum of square of array elements. 
+            squareSum_X = squareSum_X + X[i] * X[i];
+            squareSum_Y = squareSum_Y + Y[i] * Y[i];
+        }
+
+        // use formula for calculating correlation 
+        // coefficient. 
+        float corr = (float) (n * sum_XY - sum_X * sum_Y) / (float) (Math.sqrt((n * squareSum_X - sum_X * sum_X) * (n * squareSum_Y - sum_Y * sum_Y)));
+        if (Double.isNaN(corr)) {
+            corr = (float) 0.0;
+        }
+        return corr;
+    }
+}
