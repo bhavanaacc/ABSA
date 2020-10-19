@@ -5,7 +5,7 @@ The three datasets have used for entire work
 
 1: SemEval => http://metashare.ilsp.gr:8080/repository/browse/semeval-2014-absa-train-data-v20-annotation-guidelines/683b709298b811e3a0e2842b2b6a04d7c7a19307f18a4940beef6a6143f937f0/
 
-2: Yelp => https://www.kaggle.com/yelp-dataset/yelp-dataset/version/6?select=yelp_review.csv
+2: Yelp => https://www.kaggle.com/omkarsabnis/yelp-reviews-dataset
 
 3: Drug => https://www.kaggle.com/jessicali9530/kuc-hackathon-winter-2018?select=drugsComTest_raw.csv
 
